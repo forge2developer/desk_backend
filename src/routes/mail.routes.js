@@ -1,17 +1,28 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { mailController } from '../controllers/mail.controller.js';
+import { mailTemplateController } from '../controllers/mailTemplate.controller.js';
+import { emailTemplateController } from '../controllers/emailTemplate.controller.js';
+import { protect } from '../middleware/auth.middleware.js';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const router = Router();
 
 // Use memory storage — files are passed directly as Buffer to nodemailer
-const upload = multer({
+const memoryUpload = multer({
     storage: multer.memoryStorage(),
     limits: {
         fileSize: 10 * 1024 * 1024, // 10 MB per file
         files: 10,
     },
 });
+
+
 
 /**
  * @swagger
@@ -46,6 +57,18 @@ const upload = multer({
  *       500:
  *         description: Mail sending failed
  */
-router.post('/send', upload.array('attachments', 10), mailController.sendLeadMail);
+router.post('/send', memoryUpload.array('attachments', 10), mailController.sendLeadMail);
+
+// Mail Server routes
+router.get('/', protect, mailTemplateController.getTemplates);
+router.post('/', protect, mailTemplateController.createTemplate);
+router.put('/:id', protect, mailTemplateController.updateTemplate);
+router.delete('/:id', protect, mailTemplateController.deleteTemplate);
+
+// Email Template routes
+router.get('/templates', protect, emailTemplateController.getTemplates);
+router.post('/templates', protect, emailTemplateController.createTemplate);
+router.put('/templates/:id', protect, emailTemplateController.updateTemplate);
+router.delete('/templates/:id', protect, emailTemplateController.deleteTemplate);
 
 export default router;
