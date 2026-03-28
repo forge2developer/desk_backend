@@ -35,9 +35,15 @@ export class LeadActivityService {
             const Lead = getLeadModel(orgConn);
 
             // Only update the lead's stage and status if provided
-            if (data.stage || data.status) {
+            // Auto-set stage for site visits if not explicitly provided
+            let leadStage = data.stage;
+            if (!leadStage && data.updates === 'site_visit' && !data.site_visit_completed) {
+                leadStage = 'Site Visit Schedule';
+            }
+
+            if (leadStage || data.status) {
                 const updateFields = { updated_at: new Date() };
-                if (data.stage) updateFields.stage = data.stage;
+                if (leadStage) updateFields.stage = leadStage;
                 if (data.status) updateFields.status = data.status;
 
                 await Lead.findOneAndUpdate(
@@ -45,7 +51,7 @@ export class LeadActivityService {
                     updateFields,
                     { new: true }
                 );
-                console.log('Lead updated successfully - stage:', data.stage, 'status:', data.status);
+                console.log('Lead updated successfully - stage:', leadStage, 'status:', data.status);
             }
 
             // Create the activity record
@@ -55,7 +61,7 @@ export class LeadActivityService {
                 lead_id: data.lead_id,
                 reason: data.reason || '',
                 user_id: data.user_id,
-                stage: data.stage || '',
+                stage: leadStage || '',
                 status: data.status || '',
                 notes: data.notes || '',
                 follow_up_date: data.follow_up_date || null,
@@ -286,9 +292,21 @@ export class LeadActivityService {
                     site_visit_completed_by: userId
                 },
                 { new: true }
-            ).lean();
+            );
 
             if (!activity) throw new AppError('Site visit activity not found', 404);
+
+            // Update the lead's stage to "Site Visit Done"
+            const Lead = getLeadModel(orgConn);
+            await Lead.findOneAndUpdate(
+                { profile_id: activity.profile_id },
+                { stage: 'Site Visit Done', updated_at: new Date() },
+                { new: true }
+            );
+
+            console.log(`Lead ${activity.profile_id} updated to stage: Site Visit Done`);
+
+            const activityData = activity.toObject ? activity.toObject() : activity;
 
             // Resolve user names
             const ClientUser = getClientUserModel(orgConn);
