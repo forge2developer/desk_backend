@@ -179,8 +179,8 @@ export class AuthService {
     async impersonate(adminUserId, targetUserId) {
         // Verify the caller is an admin
         const adminUser = await User.findById(adminUserId);
-        if (!adminUser || adminUser.role !== 'admin') {
-            throw new AppError('Only admins can impersonate other users', 403);
+        if (!adminUser || (adminUser.role !== 'admin' && adminUser.role !== 'manager')) {
+            throw new AppError('Only admins and managers can impersonate other users', 403);
         }
 
         // Find the target user

@@ -123,7 +123,7 @@ router.post('/login', validate(loginSchema), authController.login);
  *         description: Not authorized
  */
 import { protect, authorize } from '../middleware/auth.middleware.js';
-router.post('/impersonate', protect, authorize('admin'), authController.impersonate);
+router.post('/impersonate', protect, authorize('admin', 'manager'), authController.impersonate);
 
 /**
  * @swagger
